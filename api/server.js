@@ -1,46 +1,31 @@
-// Carrega as variáveis de ambiente do arquivo .
+// Usando o módulo HTTP nativo do Node.js para criar o servidor
+const http = require('http');
 
-const jsonServer = require('json-server')
-
-// --- Início da Configuração do Bot ---
-// Pega as variáveis do ambiente. O '|| null' garante que o valor seja nulo se não for definido.
-const botToken = 777
-const sourceChannelId = 7557
-const destinationChannelId = 6776
-
-// Validação inicial: verifica se as variáveis essenciais foram definidas no .env
-if (!botToken || !sourceChannelId || !destinationChannelId) {
-    console.error("ERRO FATAL: Variáveis de ambiente essenciais (TELEGRAM_BOT_TOKEN, SOURCE_CHANNEL_ID, DESTINATION_CHANNEL_ID) não foram definidas.");
-    console.error("Por favor, crie um arquivo .env e defina as variáveis necessárias.");
-    // Encerra o processo se a configuração estiver faltando
-    process.exit(1); 
-}
+// --- Início da Configuração do Bot (Hardcoded) ---
+// ATENÇÃO: Informações sensíveis diretamente no código. Não faça isso em produção.
+const botToken = "8365573982:AAEoh0jrQCybYeTwpBlQM5X1qDrCTMtgcmM"; // Substitua pelo seu token real
+const sourceChannelId = "-1002842733849";    // Substitua pelo ID real do canal de origem
+const destinationChannelId = "-1002607954838"; // Substitua pelo ID real do canal de destino
 // --- Fim da Configuração do Bot ---
 
-
-const server = jsonServer.create()
-const router = jsonServer.router('db.json')
-const middlewares = jsonServer.defaults()
-
-server.use(middlewares)
-server.use(jsonServer.bodyParser)
-
 /**
- * Função que simula a lógica do seu bot usando as variáveis de ambiente.
- * É aqui que você colocará o código real para interagir com a API do Telegram.
+ * Função que contém a lógica para copiar a mensagem no Telegram.
  * @param {string} messageId O ID da mensagem a ser copiada.
  */
 const copyTelegramMessage = async (messageId) => {
     console.log(`[BOT] Recebido pedido para copiar a mensagem com ID: ${messageId}`);
-    console.log(`[BOT] Usando token: ...${botToken.slice(-4)}`); // Mostra apenas o final do token por segurança
+    console.log(`[BOT] Usando token: ...${botToken.toString().slice(-4)}`);
 
-    // --- Início da Lógica do Bot (Simulação) ---
-    // Substitua este bloco pelo seu código real que usa node-telegram-bot-api ou telegraf.
-    // O código aqui usaria 'botToken' para autenticar, e os IDs dos canais para saber de onde copiar e para onde colar.
+    // --- Início da Lógica Real do Bot (Substitua esta simulação) ---
+    // Aqui você usaria o 'botToken' para fazer uma chamada HTTPS para a API do Telegram.
+    // Exemplo de como seria a lógica real:
+    // const bot = new TelegramBot(botToken);
+    // await bot.copyMessage(destinationChannelId, sourceChannelId, messageId);
     
     return new Promise((resolve, reject) => {
-        if (messageId && messageId.toString().length > 3) {
-            console.log(`[BOT] Mensagem ${messageId} copiada do canal ${sourceChannelId} para o canal ${destinationChannelId} com sucesso.`);
+        // Validação simples: o ID da mensagem deve ser um número.
+        if (messageId && !isNaN(messageId)) { 
+            console.log(`[BOT] Ação para copiar msg ${messageId} do canal ${sourceChannelId} para ${destinationChannelId} foi bem-sucedida.`);
             resolve({
                 success: true,
                 message: `Mensagem ${messageId} processada.`,
@@ -48,52 +33,59 @@ const copyTelegramMessage = async (messageId) => {
                 destinationChannel: destinationChannelId
             });
         } else {
-            console.error(`[BOT] Falha ao processar a mensagem ${messageId}.`);
-            reject(new Error(`ID de mensagem inválido ou não encontrado: ${messageId}`));
+            console.error(`[BOT] Falha ao processar. ID de mensagem inválido: ${messageId}.`);
+            reject(new Error(`ID de mensagem inválido fornecido: ${messageId}`));
         }
     });
-    // --- Fim da Lógica do Bot (Simulação) ---
+    // --- Fim da Lógica do Bot ---
 };
 
+// Criação do servidor HTTP
+const server = http.createServer(async (req, res) => {
+    // Definimos o cabeçalho da resposta para indicar que retornaremos JSON
+    res.setHeader('Content-Type', 'application/json');
 
-// ROTA CUSTOMIZADA PARA O BOT
-server.post('/api/bot/copy-message', async (req, res) => {
-    const { message_id } = req.body;
+    // Analisamos a URL para criar a rota
+    // req.url será algo como "/copy/12345"
+    const urlParts = req.url.split('/'); // Transforma a URL em um array: ['', 'copy', '12345']
 
-    if (!message_id) {
-        return res.status(400).json({ 
-            status: 'error', 
-            message: 'O campo "message_id" é obrigatório.' 
-        });
-    }
+    // Verificamos se a rota está no formato correto: /copy/<ID>
+    if (req.method === 'GET' && urlParts[1] === 'copy' && urlParts[2]) {
+        const messageId = urlParts[2];
 
-    try {
-        const result = await copyTelegramMessage(message_id);
-        res.status(200).json({
-            status: 'ok',
-            details: result
-        });
-    } catch (error) {
-        res.status(500).json({
+        try {
+            // Se a rota está correta, executamos a lógica do bot
+            const result = await copyTelegramMessage(messageId);
+            
+            // Se a lógica funcionou, retornamos status 200 (OK)
+            res.writeHead(200);
+            res.end(JSON.stringify({
+                status: 'ok',
+                details: result
+            }));
+
+        } catch (error) {
+            // Se a lógica falhou (ex: ID inválido), retornamos 400 (Bad Request)
+            res.writeHead(400);
+            res.end(JSON.stringify({
+                status: 'error',
+                message: 'Requisição inválida.',
+                error_details: error.message
+            }));
+        }
+    } else {
+        // Se a URL não corresponde à rota esperada, retornamos 404 (Not Found)
+        res.writeHead(404);
+        res.end(JSON.stringify({
             status: 'error',
-            message: 'Ocorreu um erro ao processar a mensagem.',
-            error_details: error.message
-        });
+            message: 'Rota não encontrada. Use o formato /copy/:messageId'
+        }));
     }
 });
 
-
-// Rotas do json-server
-server.use(jsonServer.rewriter({
-    '/api/*': '/$1',
-    '/blog/:resource/:id/show': '/:resource/:id'
-}))
-
-server.use(router)
-server.listen(3000, () => {
-    console.log(`JSON Server está rodando na porta 3000`);
-    console.log(`[BOT] Configuração do bot carregada. Pronto para receber chamadas.`);
-})
-
-// Exporta o Server API
-module.exports = server
+// Define a porta e inicia o servidor
+const port = 3000;
+server.listen(port, () => {
+    console.log(`Servidor nativo do Node.js rodando na porta ${port}`);
+    console.log(`[BOT] Aguardando chamadas na rota GET http://localhost:3000/copy/:messageId`);
+});
