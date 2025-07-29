@@ -1,11 +1,11 @@
 // Usando o módulo HTTP nativo do Node.js para criar o servidor
 const http = require('http');
 
-// --- Início da Configuração do Bot (Hardcoded) ---
-// ATENÇÃO: Informações sensíveis diretamente no código. Não faça isso em produção.
-const botToken = "8365573982:AAEoh0jrQCybYeTwpBlQM5X1qDrCTMtgcmM"; // Substitua pelo seu token real
-const sourceChannelId = "-1002842733849";    // Substitua pelo ID real do canal de origem
-const destinationChannelId = "-1002607954838"; // Substitua pelo ID real do canal de destino
+// --- Início da Configuração do Bot (Seguro, com Variáveis de Ambiente) ---
+// As informações sensíveis são carregadas a partir das Variáveis de Ambiente configuradas na Vercel.
+const botToken = process.env.TELEGRAM_BOT_TOKEN;
+const sourceChannelId = process.env.SOURCE_CHANNEL_ID;
+const destinationChannelId = process.env.DESTINATION_CHANNEL_ID;
 // --- Fim da Configuração do Bot ---
 
 /**
@@ -13,8 +13,15 @@ const destinationChannelId = "-1002607954838"; // Substitua pelo ID real do cana
  * @param {string} messageId O ID da mensagem a ser copiada.
  */
 const copyTelegramMessage = async (messageId) => {
+    // Verificação para garantir que as variáveis de ambiente foram carregadas
+    if (!botToken || !sourceChannelId || !destinationChannelId) {
+        console.error("[BOT] Erro Crítico: As variáveis de ambiente não foram carregadas. Verifique as configurações na Vercel.");
+        throw new Error("As variáveis de ambiente do bot não estão configuradas.");
+    }
+    
     console.log(`[BOT] Recebido pedido para copiar a mensagem com ID: ${messageId}`);
-    console.log(`[BOT] Usando token: ...${botToken.toString().slice(-4)}`);
+    // A linha abaixo agora é segura, pois 'botToken' não contém mais o valor real.
+    console.log(`[BOT] Usando token que termina com: ...${botToken.slice(-4)}`);
 
     // --- Início da Lógica Real do Bot (Substitua esta simulação) ---
     // Aqui você usaria o 'botToken' para fazer uma chamada HTTPS para a API do Telegram.
@@ -46,8 +53,7 @@ const server = http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'application/json');
 
     // Analisamos a URL para criar a rota
-    // req.url será algo como "/copy/12345"
-    const urlParts = req.url.split('/'); // Transforma a URL em um array: ['', 'copy', '12345']
+    const urlParts = req.url.split('/');
 
     // Verificamos se a rota está no formato correto: /copy/<ID>
     if (req.method === 'GET' && urlParts[1] === 'copy' && urlParts[2]) {
@@ -65,12 +71,13 @@ const server = http.createServer(async (req, res) => {
             }));
 
         } catch (error) {
-            // Se a lógica falhou (ex: ID inválido), retornamos 400 (Bad Request)
-            res.writeHead(400);
+            // Se a lógica falhou, retornamos um erro apropriado
+            // Se o erro for de configuração, será 500 (Erro Interno do Servidor)
+            const statusCode = error.message.includes("ambiente") ? 500 : 400;
+            res.writeHead(statusCode);
             res.end(JSON.stringify({
                 status: 'error',
-                message: 'Requisição inválida.',
-                error_details: error.message
+                message: error.message
             }));
         }
     } else {
@@ -84,8 +91,8 @@ const server = http.createServer(async (req, res) => {
 });
 
 // Define a porta e inicia o servidor
-const port = 3000;
+const port = process.env.PORT || 3000; // Vercel define a porta via process.env.PORT
 server.listen(port, () => {
-    console.log(`Servidor nativo do Node.js rodando na porta ${port}`);
-    console.log(`[BOT] Aguardando chamadas na rota GET http://localhost:3000/copy/:messageId`);
+    console.log(`Servidor rodando na porta ${port}`);
+    console.log(`[BOT] Aguardando chamadas na rota GET /copy/:messageId`);
 });
