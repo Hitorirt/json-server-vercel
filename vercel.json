@@ -1,3 +1,5 @@
+// NÃO FAÇA ISSO COM SEUS SEGREDOS!
+// ESTE CÓDIGO EXPÕE SUAS CHAVES NO GITHUB.
 {
   "functions": {
     "api/server.js": {
@@ -10,5 +12,10 @@
       "source": "/(.*)",
       "destination": "api/server.js"
     }
-  ]
+  ],
+  "env": {
+    "TELEGRAM_BOT_TOKEN": "SEU_TOKEN_FICARIA_EXPOSTO_PUBLICAMENTE_AQUI",
+    "SOURCE_CHANNEL_ID": "-1002842733849",
+    "DESTINATION_CHANNEL_ID": "-1002607954838"
+  }
 }
