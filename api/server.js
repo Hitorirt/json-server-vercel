@@ -1,13 +1,12 @@
-// Carrega as variáveis de ambiente do arquivo .env
-require('dotenv').config();
+// Carrega as variáveis de ambiente do arquivo .
 
 const jsonServer = require('json-server')
 
 // --- Início da Configuração do Bot ---
 // Pega as variáveis do ambiente. O '|| null' garante que o valor seja nulo se não for definido.
-const botToken = process.env.TELEGRAM_BOT_TOKEN || null;
-const sourceChannelId = process.env.SOURCE_CHANNEL_ID || null;
-const destinationChannelId = process.env.DESTINATION_CHANNEL_ID || null;
+const botToken = 777
+const sourceChannelId = 7557
+const destinationChannelId = 6776
 
 // Validação inicial: verifica se as variáveis essenciais foram definidas no .env
 if (!botToken || !sourceChannelId || !destinationChannelId) {
