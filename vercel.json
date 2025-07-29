@@ -1,5 +1,3 @@
-// NÃO FAÇA ISSO COM SEUS SEGREDOS!
-// ESTE CÓDIGO EXPÕE SUAS CHAVES NO GITHUB.
 {
   "functions": {
     "api/server.js": {
